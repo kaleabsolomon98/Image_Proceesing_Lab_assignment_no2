@@ -1,0 +1,124 @@
+%Load image rice.png
+originalImage = imread('rice.png');
+imshow(originalImage)
+title('Original Image')
+
+%Look at histogram
+originalHistogram = imhist(originalImage);
+stem(0:255, originalHistogram,'Marker','none')
+title('Original Histogram')
+
+%Look for possible threshold spot to find rice
+%Trying T = 160
+T = 160
+brightnessVector = (0:255)';
+
+%Dark region it T <= 160
+averageDarkRegionBrightness = sum(originalHistogram(1:T) .* brightnessVector(1:T))/sum(originalHistogram(1:T))
+m1 = averageDarkRegionBrightness;
+
+%Light region it T > 160
+averageLightRegionBrightness = sum(originalHistogram(T+1:256) .* brightnessVector(T+1:256))/sum(originalHistogram(T+1:256))
+m2 = averageLightRegionBrightness;
+
+%estimate for T choose the average of those two means
+Tnew = int16((m1 + m2)/2)
+
+%Loop until we find threshold
+while (Tnew ~= T)
+    T = Tnew;
+    m1 = sum(originalHistogram(1:T) .* brightnessVector(1:T))/sum(originalHistogram(1:T));
+    m2 = sum(originalHistogram(T+1:256) .* brightnessVector(T+1:256))/sum(originalHistogram(T+1:256));
+    Tnew = int16((m1 + m2)/2);
+end
+
+%Check result after loop search
+Tresult = Tnew
+
+%Added the cool picture similar to IterativeThreshold
+%This code is copied from provided IterativeThreshold.m
+mask=originalImage>Tresult;
+imshow(labeloverlay(originalImage,mask,'Colormap','autumn'));
+title('Found objects')
+
+%My initial guess 160 was not too bad.
+%I thought right peak is rice,and that was correct.
+%But I estimated it would be between 125 and 169.
+%And I have chosen 160 based on intuition that it separated right peak
+%better. If I have chosen better I would have had less loops i.e. faster.
+
+%Implement Otsu's method and create function
+function tresholdIndex = otsu(image)
+
+%helpful vector we going to use for groups
+x = (0:255)';
+brightnessVector = (0:255)';
+originalHistogram = imhist(image);
+
+%helpful variables to remember index, start from non existing one
+indexMax = -1;
+indexMin = -1;
+
+%sigmaB2 array
+sigmaB2array = zeros(1, 255);
+
+%Go all possible tOtsu i.e. threshold
+for tOtsu = 0:254
+    %group1
+    gr1 = (x <= tOtsu);
+    group1 = originalHistogram .* gr1;
+    %group2
+    gr2 = (x > tOtsu);
+    group2 = originalHistogram .* gr2;
+
+    %if group is empty continue, because zero groups make no sense for Otsu
+    %method
+    if all(group1 == 0) || all(group2 == 0)
+        continue
+    end
+
+    %calculate variance for groups
+    meanGroup1 = sum(group1 .* brightnessVector)/sum(group1);
+    varianceGroup1 = sum((brightnessVector - meanGroup1).^2 .* group1)/sum(group1);
+    meanGroup2 = sum(group2 .* brightnessVector)/sum(group2);
+    varianceGroup2 = sum((brightnessVector - meanGroup2).^2 .* group2)/sum(group2);
+    %variance within the classes sigmaW2
+    fraction1 = sum(group1)/sum(originalHistogram);
+    fraction2 = sum(group2)/sum(originalHistogram);
+    sigmaW2 = fraction1*varianceGroup1 + fraction2*varianceGroup2;
+    %variance between the classes sigmaB2
+    globalMean = sum(originalHistogram .* brightnessVector)/sum(originalHistogram);
+    sigmaB2 = fraction1*(meanGroup1 - globalMean)^2 + fraction2*(meanGroup2 - globalMean)^2;
+    sigmaB2array(tOtsu + 1) = sigmaB2;
+
+    if (indexMax == -1)
+        indexMax = tOtsu;
+        max = sigmaB2;
+    elseif sigmaB2 > max
+        indexMax = tOtsu;
+        max = sigmaB2;
+    end
+
+    if (indexMin == -1)
+        indexMin = tOtsu;
+        min = sigmaW2;
+    elseif sigmaW2 < min
+        indexMin = tOtsu;
+        min = sigmaW2;
+    end
+end
+plot(sigmaB2array)
+title('sigmaB2 plot')
+
+tresholdIndex = indexMin;
+end
+
+otsu(originalImage)
+
+%check my Otsu implementation with MatLab build-in function
+testImage = imread("images/hand2BW.png");
+imshow(testImage)
+title('Test Image')
+
+matlabOtsuAnswer = graythresh(testImage)
+myAnswer = otsu(testImage)/255
