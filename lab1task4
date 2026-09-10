@@ -1,0 +1,84 @@
+%Load data from Landsat 7
+load landsat_data.mat;
+%Band 1 Visible BLUE (0.45 - 0.52 μm) 30 m.
+%Band 2 Visible GREEN (0.52 - 0.60 μm) 30 m.
+%Band 3 Visible RED (0.63 - 0.69 μm) 30 m.
+%Band 4 Near-Infrared (0.77 - 0.90 μm) 30 m.
+%Band 5 Near-Infrared (1.55 - 1.75 μm) 30 m.
+%Band 6 Thermal (10.40 - 12.50 μm) 60 m Low Gain / High Gain.
+%Band 7 Mid-Infrared (2.08 - 2.35 μm) 30 m.
+
+%Self experiment
+%combine channels in RGB and show it
+RGB = cat(3, landsat_data(:,:,3), landsat_data(:,:,2), landsat_data(:,:,1));
+imshow(RGB);
+title('RGB picture')
+
+%Visualize different channels
+imshow(landsat_data(:,:,[4,1,3]));
+title('431 channels')
+
+%Display all bands as a montage of grayscale images
+montage(landsat_data);
+title('All channels')
+
+%Channel 1
+imshow(landsat_data(:,:,1));
+title('Channel 1 BLUE')
+
+%Channel 2
+imshow(landsat_data(:,:,2));
+title('Channel 2 GREEN')
+
+%Channel 3
+imshow(landsat_data(:,:,3));
+title('Channel 3 RED')
+
+%Channel 4
+imshow(landsat_data(:,:,4));
+title('Channel 4')
+
+%Channel 5
+imshow(landsat_data(:,:,5));
+title('Channel 5')
+
+%Channel 6
+imshow(landsat_data(:,:,6));
+title('Channel 6 Thermal')
+
+%Channel 7
+imshow(landsat_data(:,:,7));
+title('Channel 7')
+
+%Zoom in in figure mode to check the details (i.e. resolution)
+%Looks like channel 6 have worst resolution and looks blurry
+%1,2,3 resolution look same
+%4,5,7 also look same
+%looks like 4,5,7 might be slightly better than 1,2,3 but difference is hard to
+%determine visually. I will say they are same.
+
+%Lets check combos
+%I checked that even if colors will be different, info looks same for the
+%same triplet.
+for i = 1:7
+    for j = i+1:7
+        for k = j+1:7
+combo = cat(3, landsat_data(:,:,i), landsat_data(:,:,j), landsat_data(:,:,k));
+figure
+imshow(combo)
+title('Combo ' + string(i) + string(j) + string(k))
+        end
+    end
+end
+
+%Hard to find the one best, only group, looks like it is the same picture
+%where agriculture looks best urban area looks best too
+%looks like every good result contain channel 4 that separate areas best
+%Every result with channel 6 included is blurry
+
+%Test of all same channels show that it make no sense to show one channel
+%twice
+combo = cat(3, landsat_data(:,:,4), landsat_data(:,:,4), landsat_data(:,:,4));
+figure
+imshow(combo)
+title('Test 444')
