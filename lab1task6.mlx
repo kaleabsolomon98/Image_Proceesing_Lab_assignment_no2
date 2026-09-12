@@ -1,0 +1,38 @@
+%Load image
+I = imread('images/hand2BW.png');
+imshow(I);
+title('Original image')
+
+%Try Otsu's thresholding
+T = graythresh(I) * 255
+mask=I>T;
+imshow(labeloverlay(I,mask,'Colormap','autumn'));
+title('Found objects')
+
+%Otsu failed to help separate hand because background has light dots
+
+%Let's look at histogram, Otsu's prediction looks reasonable, trying to
+%separate two peaks. But the problem (dots) also belong to right peak.
+imhist(I,256);
+title('Original histogram')
+
+%Apply mean filter
+Ifiltered = imboxfilt(I, 5);
+imshow(Ifiltered)
+title('Filtered image')
+
+%Try Otsu's thresholding again
+Tfiltered = graythresh(Ifiltered) * 255
+mask=Ifiltered>Tfiltered;
+imshow(labeloverlay(Ifiltered,mask,'Colormap','autumn'));
+title('Found objects ob filtered image')
+
+%Show new histogram after filtering
+imhist(Ifiltered,256);
+title('Filtered histogram')
+
+%Show thresholded binary images
+imshow(I > T)
+title('Result without filtering')
+imshow(Ifiltered > Tfiltered)
+title('Result with filtering')
